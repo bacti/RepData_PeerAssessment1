@@ -110,7 +110,7 @@ activity.new <- activity %>%
     mutate(steps = x.steps)
 ```
 
-Make a histogram of the total number of steps taken each day and Calculate and report the `mean` and `median` total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+Make a histogram of the total number of steps taken each day and Calculate and report the `mean` and `median` total number of steps taken per day.
 
 ```{r}
 ## The total number of steps taken each day
@@ -131,6 +131,12 @@ ggplot(data = activity.new.date, mapping = aes(x = steps)) +
 ```{r}
 summary(activity.new.date$steps)
 ```
+
+Do these values differ from the estimates from the first part of the assignment?  
+*Absolutely!*
+
+What is the impact of imputing missing data on the estimates of the total daily number of steps?  
+*The distribution looks more normal now.*
 
 ## Are there differences in activity patterns between weekdays and weekends?
 

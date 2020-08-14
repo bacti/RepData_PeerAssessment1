@@ -440,7 +440,7 @@ sum(is.na(x.steps))</code></pre>
 <pre class="r"><code>activity.new &lt;- activity %&gt;%
     select(date, interval) %&gt;%
     mutate(steps = x.steps)</code></pre>
-<p>Make a histogram of the total number of steps taken each day and Calculate and report the <code>mean</code> and <code>median</code> total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?</p>
+<p>Make a histogram of the total number of steps taken each day and Calculate and report the <code>mean</code> and <code>median</code> total number of steps taken per day.</p>
 <pre class="r"><code>## The total number of steps taken each day
 activity.new.date &lt;- activity.new %&gt;%
     group_by(date) %&gt;%
@@ -458,6 +458,10 @@ ggplot(data = activity.new.date, mapping = aes(x = steps)) +
 <pre class="r"><code>summary(activity.new.date$steps)</code></pre>
 <pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 ##      41    9819   10766   10766   12811   21194</code></pre>
+<p>Do these values differ from the estimates from the first part of the assignment?<br />
+<em>Absolutely!</em></p>
+<p>What is the impact of imputing missing data on the estimates of the total daily number of steps?<br />
+<em>The distribution looks more normal now.</em></p>
 </div>
 <div id="are-there-differences-in-activity-patterns-between-weekdays-and-weekends" class="section level2">
 <h2>Are there differences in activity patterns between weekdays and weekends?</h2>
