@@ -1,25 +1,155 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
+title: 'Reproducible Research: Peer Assessment 1'
 output: 
-  html_document:
-    keep_md: true
+    html_document:
+        keep_md: true
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+    warning = TRUE, # show warnings
+    message = TRUE, # show messages
+    error = TRUE, # do not interrupt generation in case of errors,
+    echo = TRUE  # show R code
+)
+```
 
 ## Loading and preprocessing the data
 
+```{r, echo = FALSE, message = FALSE}
+library(data.table)
+library(ggplot2)
+library(dplyr)
+library(lubridate)
+```
 
+```{r}
+if (!file.exists('activity.csv'))
+{
+    unzip(zipfile = 'activity.zip')
+}
+activity <- fread('activity.csv')
+str(activity)
+```
 
 ## What is mean total number of steps taken per day?
 
+```{r}
+## The total number of steps taken each day
+activity.date <- activity %>%
+    group_by(date) %>%
+    summarise(steps = sum(steps, na.rm = TRUE), .groups = 'drop')
 
+## Make the plot
+ggplot(data = activity.date, mapping = aes(x = steps)) +
+    geom_histogram(colour = 'white', fill = '#4B0055', binwidth = 1000) +
+    geom_density(aes(y = 1000 * ..count..), color = 'green', lwd = 1) +
+    scale_y_continuous(n.breaks = 10) +
+    geom_vline(aes(xintercept = mean(steps), color = 'mean'), lty = 'dashed', lwd = 1) +
+    geom_vline(aes(xintercept = median(steps), color = 'median'), lty = 'dashed', lwd = 1) +
+    labs(x = 'Total number of steps taken per day', y = 'Count', color = '')
+```
+
+```{r}
+summary(activity.date$steps)
+```
 
 ## What is the average daily activity pattern?
 
+Make a time series plot (i.e. `type = "l"`) of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
 
+```{r, fig.height = 4, fig.width = 12}
+## The average number of steps taken, averaged across all days
+activity.interval <- activity %>%
+    group_by(interval) %>%
+    summarise(steps = mean(steps, na.rm = TRUE), .groups = 'drop') %>%
+    mutate(time = (floor(interval / 100) * 60 + interval %% 100) * 60)
+
+## The interval of maximum steps number
+peak <- which.max(activity.interval$steps)
+peak_time <- activity.interval$time[peak]
+
+## Make the plot
+ggplot(data = activity.interval, mapping = aes(x = time, y = steps)) +
+    geom_line() +
+    geom_vline(aes(xintercept = peak_time, color = 'red'), linetype = 'dashed', size = 1) +
+    scale_x_time(labels = scales::time_format('%H:%M'), breaks = minutes(60 * seq(from = 1, to = 23, by = 2))) +
+    theme(legend.position = 'none')
+```
+
+Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+```{r}
+activity.interval$interval[peak]
+```
+
+So the interval from `r format(Sys.Date() + seconds(peak_time), '%H:%M')` to `r format(Sys.Date() + seconds(peak_time + 5 * 60), '%H:%M')` contains the maximum number of steps on average across all the days in the dataset.
 
 ## Imputing missing values
 
+Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with `NA`)
 
+```{r}
+sum(is.na(activity$steps))
+```
+
+Devise a strategy for filling in all of the missing values in the dataset.
+
+```{r}
+## The strategy is to set the mean for that 5-minute interval.
+x <- activity %>% left_join(activity.interval, by = 'interval')
+x.steps <- coalesce(x$steps.x, x$steps.y)
+sum(is.na(x.steps))
+```
+
+Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+```{r}
+activity.new <- activity %>%
+    select(date, interval) %>%
+    mutate(steps = x.steps)
+```
+
+Make a histogram of the total number of steps taken each day and Calculate and report the `mean` and `median` total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+```{r}
+## The total number of steps taken each day
+activity.new.date <- activity.new %>%
+    group_by(date) %>%
+    summarise(steps = sum(steps, na.rm = TRUE), .groups = 'drop')
+
+## Make the plot
+ggplot(data = activity.new.date, mapping = aes(x = steps)) +
+    geom_histogram(colour = 'white', fill = '#4B0055', binwidth = 1000) +
+    geom_density(aes(y = 1000 * ..count..), color = 'green', lwd = 1) +
+    scale_y_continuous(n.breaks = 10) +
+    geom_vline(aes(xintercept = mean(steps), color = 'mean'), lty = 'dashed', lwd = 1) +
+    geom_vline(aes(xintercept = median(steps), color = 'median'), lty = 'dashed', lwd = 1) +
+    labs(x = 'Total number of steps taken per day', y = 'Count', color = '')
+```
+
+```{r}
+summary(activity.new.date$steps)
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r}
+## Create a new factor variable in the dataset with two levels
+##  – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+activity.new <- activity.new %>%
+    mutate(day = if_else(weekdays(date) %in% c('Saturday', 'Sunday'), 'weekend', 'weekday'))
+
+## Take the average number of steps taken, averaged across all weekday days or weekend days
+activity.new.interval <- activity.new %>%
+    group_by(interval, day) %>%
+    summarise(steps = mean(steps, na.rm = TRUE), .groups = 'drop') %>%
+    mutate(time = (floor(interval / 100) * 60 + interval %% 100) * 60)
+
+## Make the plot
+ggplot(data = activity.new.interval, mapping = aes(x = time, y = steps)) +
+    facet_grid(day ~ .) +
+    geom_line(color = 'blue') +
+    scale_x_time(labels = scales::time_format('%H:%M'), breaks = minutes(60 * seq(from = 1, to = 23, by = 2))) +
+    labs(x = 'Interval', y = 'Number of steps', color = '')
+```
